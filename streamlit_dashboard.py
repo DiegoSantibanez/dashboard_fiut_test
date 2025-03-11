@@ -14,7 +14,8 @@ st.set_page_config(
     page_title="Data Lake Explorer",
     page_icon="📊",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
+    theme="light"
 )
 
 # Función para cargar los datos
