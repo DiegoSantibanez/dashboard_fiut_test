@@ -11,7 +11,7 @@ import numpy as np
 
 # Configuración de la página
 st.set_page_config(
-    page_title="Data Lake Explorer",
+    page_title="Exploración datos FIUT",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -379,7 +379,7 @@ def crear_grafico_metodos_obtencion():
 
 def main():
     # Título principal con contador de archivos
-    st.title("🗃️ Explorador del Data Lake")
+    st.title("🗃️ Proyecto FIUT 2024") # NOTA: añadir logo de U en vez de emoji
     
     # Cargar y procesar datos
     df = cargar_datos()
@@ -391,10 +391,24 @@ def main():
     
     # Contador total de archivos
     total_archivos = len(df)
-    st.markdown(f"### Análisis de {total_archivos} archivos en el Data Lake")
+    st.markdown(f"### Levantamiento de un diagnóstico integral del territorio local y de las capacidades institucionales UTEM para la creación de un Centro Interdisciplinario en nuevas economías y tecnologías, orientado al desarrollo de localidades prioritarias de la Región Metropolitana. (CINET)")
     
     # Métricas principales
-    col1, col2, col3 = st.columns(3)
+    # col1, col2, col3 = st.columns(3)
+    # with col1:
+    #     inst_count = df['institucional'].sum()
+    #     st.metric("Archivos Institucionales", inst_count, f"{inst_count/total_archivos:.1%}")
+    
+    # with col2:
+    #     terr_count = df['territorial'].sum()
+    #     st.metric("Archivos Territoriales", terr_count, f"{terr_count/total_archivos:.1%}")
+    
+    # with col3:
+    #     ext_count = df['extension'].nunique()
+    #     st.metric("Tipos de Archivos", ext_count)
+
+        # Métricas principales
+    col1, col2= st.columns(2)
     with col1:
         inst_count = df['institucional'].sum()
         st.metric("Archivos Institucionales", inst_count, f"{inst_count/total_archivos:.1%}")
@@ -402,10 +416,6 @@ def main():
     with col2:
         terr_count = df['territorial'].sum()
         st.metric("Archivos Territoriales", terr_count, f"{terr_count/total_archivos:.1%}")
-    
-    with col3:
-        ext_count = df['extension'].nunique()
-        st.metric("Tipos de Archivos", ext_count)
     
     # Pestañas para diferentes análisis
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
@@ -418,7 +428,7 @@ def main():
     
     # TAB 1: Vista General
     with tab1:
-        st.header("Distribución General de Archivos")
+        st.header("Análisis archivos")
         
         col1, col2 = st.columns(2)
         
