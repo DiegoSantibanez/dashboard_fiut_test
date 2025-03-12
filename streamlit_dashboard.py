@@ -789,7 +789,7 @@ def main():
     with col2:
         st.image("imagenes/Isologo FIU UTEM color.png", width=400)
 
-    st.title("Proyecto CENIT")
+    st.title("Proyecto FIUT 2024 UTEM")
     
     # Cargar y procesar datos
     df = cargar_datos()
