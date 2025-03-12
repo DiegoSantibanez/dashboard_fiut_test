@@ -83,7 +83,7 @@ def crear_grafico_institucional_territorial(df):
         go.Bar(
             x=list(conteo.keys()),
             y=list(conteo.values()),
-            marker_color=['#1E88E5', '#FFC107'],
+            marker_color=['#0A5C99', '#FEC109'],  # Cambiado a azul oscuro y amarillo
             text=list(conteo.values()),
             textposition='auto'
         )
@@ -123,14 +123,14 @@ def crear_grafico_extensiones(df, filtro=None):
     threshold = 5
     conteo_extensiones['tamaño'] = ['pequeña' if p < threshold else 'normal' for p in conteo_extensiones['porcentaje']]
     
-    # Crear gráfico
+    # Crear gráfico con la nueva paleta de colores
     fig = px.pie(
         conteo_extensiones, 
         values='conteo', 
         names='extension',
         title=titulo,
         hole=0.3,
-        color_discrete_sequence=px.colors.qualitative.Bold
+        color_discrete_sequence=['#0A5C99', '#1E88E5', '#FEC109', '#FC9F0B']  # Nueva paleta personalizada
     )
     
     # Configurar texto
@@ -183,14 +183,14 @@ def crear_grafico_dimensiones(df, filtro=None):
     # Ordenar por nombre de dimensión
     conteo_dimensiones = conteo_dimensiones.sort_values('dimension')
     
-    # Crear gráfico
+    # Crear gráfico con la nueva paleta de colores
     fig = px.pie(
         conteo_dimensiones, 
         values='conteo', 
         names='dimension',
         title=titulo,
         hole=0.3,
-        color_discrete_sequence=px.colors.sequential.Viridis
+        color_discrete_sequence=['#0A5C99', '#1E88E5', '#FEC109', '#FC9F0B']  # Nueva paleta personalizada
     )
     
     # Configurar texto
@@ -237,13 +237,14 @@ def crear_grafico_comparativo_extensiones(df):
                         subplot_titles=("Tipos de archivos Institucionales", "Tipos de archivos Territoriales"),
                         specs=[[{"type": "pie"}, {"type": "pie"}]])
     
-    # Añadir gráficos de pastel
+    # Añadir gráficos de pastel con nuevos colores
     fig.add_trace(
         go.Pie(
             labels=orden,
             values=[ext_inst[ext] for ext in orden],
             name="Institucional",
-            hole=0.4
+            hole=0.4,
+            marker=dict(colors=['#0A5C99', '#1E88E5', '#FEC109', '#FC9F0B'])  # Nueva paleta personalizada
         ),
         row=1, col=1
     )
@@ -253,7 +254,8 @@ def crear_grafico_comparativo_extensiones(df):
             labels=orden,
             values=[ext_terr[ext] for ext in orden],
             name="Territorial",
-            hole=0.4
+            hole=0.4,
+            marker=dict(colors=['#0A5C99', '#1E88E5', '#FEC109', '#FC9F0B'])  # Nueva paleta personalizada
         ),
         row=1, col=2
     )
@@ -288,13 +290,14 @@ def crear_heatmap_extension_dimension(df):
         fill_value=0
     )
     
-    # Crear heatmap
+    # Crear heatmap con la paleta personalizada
+    # Para heatmaps es mejor usar una escala de un solo color, así que usamos azules
     fig = px.imshow(
         pivot,
         labels=dict(x="Dimensión", y="Extensión", color="Cantidad"),
         x=pivot.columns,
         y=pivot.index,
-        color_continuous_scale='Viridis',
+        color_continuous_scale=[[0, '#E3F2FD'], [0.5, '#1E88E5'], [1, '#0A5C99']],  # Escala de azules de la paleta
         title='Distribución de Tipos de Archivos por Dimensión'
     )
     
@@ -344,16 +347,14 @@ def crear_grafico_metodos_obtencion():
     values='conteo', 
     names='nombres', 
     title='Distrubución métodos de obtención de los archivos',
-    color_discrete_sequence=px.colors.qualitative.D3,
+    color_discrete_sequence=['#0A5C99', '#1E88E5', '#FEC109'],  # Nueva paleta personalizada
     hole=0.3,  # Para hacer un gráfico de dona
-    # color_discrete_sequence=px.colors.sequential.amp
     )
 
     # Configurar texto con posiciones adaptativas
     fig.update_traces(
         textposition='auto',  # 'auto' ajusta la posición automáticamente
         textinfo='percent+label',  # Muestra porcentaje y etiqueta
-        # textinfo='percent+value+label',  # Muestra porcentaje y etiqueta
         textfont_size=12,  # Tamaño de texto más grande
         rotation=270
     )
@@ -367,7 +368,6 @@ def crear_grafico_metodos_obtencion():
             yanchor="bottom",
             y=0.8,  # Posición de la leyenda
             xanchor="center",
-            # x=0.5,
             font=dict(size=12)
         ),
         margin=dict(l=20, r=20, t=60, b=20),  # Márgenes reducidos
@@ -442,7 +442,7 @@ def main():
     # Pestañas para diferentes análisis
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "Vista General", 
-        "Análisis por Tipo", 
+        "Análisis de Archivos", 
         "Análisis por Dimensiones",
         "Insights Adicionales",
         "Mapa Geográfico"
@@ -453,6 +453,12 @@ def main():
     # NOTA: Los graficos de vista general pasan a análisis por Tipo
     # TAB 1: Vista General
     with tab1:
+        st.markdown('# texto temporal')
+        
+    
+    # TAB 2: Análisis por Tipo
+    with tab2:
+
         st.header("Análisis archivos")
         
         col1, col2 = st.columns(2)
@@ -492,9 +498,8 @@ def main():
         o flujos de trabajo específicos para cada categoría.</p>
         </div>
         """, unsafe_allow_html=True)
-    
-    # TAB 2: Análisis por Tipo
-    with tab2:
+
+
         st.header("Análisis Detallado por Tipo de Archivo")
         
         # Selector para filtrar por categoría
