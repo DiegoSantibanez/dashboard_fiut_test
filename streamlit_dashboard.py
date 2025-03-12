@@ -453,7 +453,29 @@ def main():
     # NOTA: Los graficos de vista general pasan a análisis por Tipo
     # TAB 1: Vista General
     with tab1:
-        st.markdown('# texto temporal')
+        # Puedes ajustar el tamaño del mapa según necesites
+        treemap_height = 800
+        
+        # Función para leer el archivo HTML
+        def cargar_html_treemap(ruta_html):
+            try:
+                with open(ruta_html, 'r', encoding='utf-8') as f:
+                    html_content = f.read()
+                return html_content
+            except FileNotFoundError:
+                st.error(f"No se encontró el archivo HTML del mapa en: {ruta_html}")
+                return None
+        
+        # Ruta a tu archivo HTML (ajusta según donde esté guardado)
+        ruta_mapa = "treemap_simple.html"
+        
+        # Cargar y mostrar el mapa
+        html_treemap = cargar_html_treemap(ruta_mapa)
+        if html_treemap:
+            st.markdown("### Treemap de dimensiones e indicadores.")
+            components.html(html_treemap, height=treemap_height)
+        else:
+            st.warning("No se pudo cargar el mapa. Verifica la ruta del archivo HTML.")
         
     
     # TAB 2: Análisis por Tipo
