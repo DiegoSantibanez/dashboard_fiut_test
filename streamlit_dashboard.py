@@ -577,9 +577,14 @@ def main():
             </div>
             """, unsafe_allow_html=True)
             
+            # Cargar el CSV de nombres de dimensiones
+            nombres_dimensiones = pd.read_csv("nombres_dimensiones.csv")
+            # Crear un diccionario para mapear id a nombre
+            dict_dimensiones = dict(zip(nombres_dimensiones['id_dim'], nombres_dimensiones['nombre_dim']))
+
             # Mostrar estadísticas por dimensión
-            st.subheader("Estadísticas por Dimensión") # NOTA:  Añadir Nombre de las dimensiones en la tabla 
-            
+            st.subheader("Estadísticas por Dimensión")
+
             # Filtrar según selección
             if filter_dim == 'institucional':
                 df_stat = df[df['institucional'] == True]
@@ -590,15 +595,40 @@ def main():
                 
             # Calcular estadísticas de dimensiones sin "Sin clasificación"
             df_dims = df_stat[df_stat['dimensiones'] != 'Sin clasificación']
-            
+
             if not df_dims.empty:
                 dim_stats = df_dims['dimensiones'].value_counts()
-                dim_df = pd.DataFrame({
-                    'Dimensión': dim_stats.index,
-                    'Total Archivos': dim_stats.values,
-                    'Porcentaje': (dim_stats.values / dim_stats.sum() * 100).round(1)
-                })
-                st.dataframe(dim_df, use_container_width=True)
+                
+                # Crear DataFrame para las estadísticas
+                data = []
+                for dim in dim_stats.index:
+                    # Extraer el número de dimensión
+                    if isinstance(dim, str) and dim.startswith('Dimensión '):
+                        dim_num = int(dim.replace('Dimensión ', ''))
+                    else:
+                        dim_num = int(dim) if str(dim).isdigit() else 0
+                    
+                    # Obtener el nombre completo
+                    nombre_completo = dict_dimensiones.get(dim_num, "Sin nombre")
+                    
+                    data.append({
+                        'Número': dim_num,
+                        'Dimensión': dim, 
+                        'Nombre Dimensión': nombre_completo,
+                        'Total Archivos': dim_stats[dim],
+                        'Porcentaje': round(dim_stats[dim] / dim_stats.sum() * 100, 1)
+                    })
+                
+                # Crear DataFrame y ordenar por número de dimensión
+                dim_df = pd.DataFrame(data)
+                dim_df = dim_df.sort_values('Número')
+                
+                # Mostrar el DataFrame sin el índice y sin la columna de número
+                st.dataframe(
+                    dim_df[['Dimensión', 'Nombre Dimensión', 'Total Archivos', 'Porcentaje']], 
+                    use_container_width=True,
+                    hide_index=True
+                )
             else:
                 st.info("No hay datos de dimensiones disponibles para esta selección.")
         
