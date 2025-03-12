@@ -669,6 +669,64 @@ def mostrar_treemap_dimensiones():
         st.write("Estructura de los datos:", df_combined.head())
 
 
+
+# Función para cargar y mostrar la tabla de comunas
+def mostrar_tabla_comunas():
+    """
+    Carga y muestra una tabla con información de las comunas de la Región Metropolitana.
+    """
+    st.subheader("Comunas del proyecto - Región Metropolitana")
+    
+    # Cargar datos de comunas
+    @st.cache_data
+    def cargar_comunas(ruta='Comunas.csv'):
+        try:
+            df = pd.read_csv(ruta)
+            return df
+        except Exception as e:
+            st.error(f"Error al cargar el archivo de comunas: {str(e)}")
+            return pd.DataFrame()
+    
+    # Cargar el dataframe
+    df_comunas = cargar_comunas()
+    
+    if not df_comunas.empty:
+        # Mostrar tabla sin el índice
+        st.dataframe(
+            df_comunas,
+            use_container_width=True,
+            hide_index=True
+        )
+        
+        # # Información adicional
+        # col1, col2 = st.columns(2)
+        
+        # with col1:
+        #     # Contar comunas por provincia
+        #     comunas_por_provincia = df_comunas['Provincia'].value_counts().reset_index()
+        #     comunas_por_provincia.columns = ['Provincia', 'Cantidad de Comunas']
+            
+        #     st.write("Distribución por Provincia:")
+        #     st.dataframe(
+        #         comunas_por_provincia,
+        #         use_container_width=True,
+        #         hide_index=True
+        #     )
+        
+        # with col2:
+        #     st.markdown("""
+        #     <div style="background-color:#f0f2f6; padding:15px; border-radius:10px;">
+        #     <h4>Acerca de las comunas prioritarias</h4>
+        #     <p>Estas 22 comunas han sido identificadas como prioritarias para el proyecto CINET, 
+        #     enfocado en el desarrollo de centros interdisciplinarios en nuevas economías y 
+        #     tecnologías.</p>
+        #     <p>La selección abarca comunas de 5 provincias diferentes de la Región Metropolitana, 
+        #     con especial énfasis en comunas pertenecientes a la provincia de Santiago.</p>
+        #     </div>
+        #     """, unsafe_allow_html=True)
+    else:
+        st.warning("No se pudo cargar la información de comunas.")
+
 def main():
     # Aplicar estilo CSS personalizado para centrar imágenes en columnas
     st.markdown("""
@@ -827,6 +885,8 @@ def main():
         <p>Potenciar la contribución de universidades con acreditación entre 3 y 5 años al desarrollo territorial y los procesos de  descentralización, mediante el financiamiento de capacidades mínimas de I+D+i, incluyendo su respectiva gestión y gobernanza institucional.</p>
         </div>
         """, unsafe_allow_html=True)
+        
+        mostrar_tabla_comunas()
 
         mostrar_treemap_dimensiones()
         
