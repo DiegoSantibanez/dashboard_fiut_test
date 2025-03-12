@@ -440,12 +440,13 @@ def main():
         st.metric("Archivos Territoriales", terr_count, f"{terr_count/total_archivos:.1%}")
     
     # Pestañas para diferentes análisis
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6= st.tabs([
         "Vista General", 
-        "Análisis de Archivos", 
         "Análisis por Dimensiones",
         "Insights Adicionales",
-        "Mapa Geográfico"
+        "Mapa Geográfico",
+        "Mapa Sedes",
+        "Análisis de Archivos"
     ])
 
 
@@ -477,103 +478,8 @@ def main():
         else:
             st.warning("No se pudo cargar el mapa. Verifica la ruta del archivo HTML.")
         
-    
-    # TAB 2: Análisis por Tipo
+
     with tab2:
-
-        st.header("Análisis archivos")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.plotly_chart(crear_grafico_institucional_territorial(df), use_container_width=True, key="inst_terr_chart")
-            
-            st.markdown("""
-            <div style="background-color:#f0f2f6; padding:15px; border-radius:10px;">
-            <h4>¿Qué nos muestra este gráfico?</h4>
-            <p>Este gráfico muestra la distribución de archivos entre las categorías <strong>Institucional</strong> 
-            y <strong>Territorial</strong>, permitiendo identificar rápidamente el balance entre estos dos tipos 
-            de información en el Data Lake.</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            st.plotly_chart(crear_grafico_extensiones(df), use_container_width=True, key="ext_general_chart")
-            
-            st.markdown("""
-            <div style="background-color:#f0f2f6; padding:15px; border-radius:10px;">
-            <h4>Tipos de archivos en el Data Lake</h4>
-            <p>La distribución de tipos de archivos nos permite entender qué formatos predominan en el repositorio,
-            lo que refleja los tipos de datos y documentos más utilizados en la organización.</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        # Gráfico comparativo de extensiones por categoría
-        st.header("Comparación de Tipos de Archivos por Categoría")
-        st.plotly_chart(crear_grafico_comparativo_extensiones(df), use_container_width=True, key="ext_comp_chart")
-        
-        st.markdown("""
-        <div style="background-color:#f0f2f6; padding:15px; border-radius:10px;">
-        <h4>Diferencias entre categorías</h4>
-        <p>Esta comparación permite identificar si existen patrones o preferencias diferentes en el uso de formatos 
-        de archivos entre las áreas institucionales y territoriales. Esto puede reflejar diferentes necesidades
-        o flujos de trabajo específicos para cada categoría.</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-
-        st.header("Análisis Detallado por Tipo de Archivo")
-        
-        # Selector para filtrar por categoría
-        filtro_cat = st.radio(
-            "Seleccionar categoría:",
-            ["Global", "Institucional", "Territorial"],
-            horizontal=True
-        )
-        filtro = None if filtro_cat == "Global" else filtro_cat.lower()
-        
-        # Gráfico de extensiones filtrado
-        st.plotly_chart(crear_grafico_extensiones(df, filtro), use_container_width=True, key=f"ext_{filtro_cat}_chart")
-        
-        # Mostrar top extensiones con estadísticas
-        st.subheader(f"Top 5 Extensiones - {filtro_cat}")
-        
-        # Filtrar según selección
-        if filtro == 'institucional':
-            df_temp = df[df['institucional'] == True]
-        elif filtro == 'territorial':
-            df_temp = df[df['territorial'] == True]
-        else:
-            df_temp = df
-            
-        # Calcular estadísticas
-        top_ext = df_temp['extension'].value_counts().head(5)
-        top_ext_df = pd.DataFrame({
-            'Extensión': top_ext.index,
-            'Cantidad': top_ext.values,
-            'Porcentaje': (top_ext.values / len(df_temp) * 100).round(1)
-        })
-        
-        # Mostrar tabla
-        st.dataframe(top_ext_df, use_container_width=True)
-        
-        st.markdown("""
-        <div style="background-color:#f0f2f6; padding:15px; border-radius:10px;">
-        <h4>Interpretación de los tipos de archivos</h4>
-        <p>Los diferentes tipos de archivos tienen propósitos específicos:</p>
-        <ul>
-            <li><strong>.xlsx/.xls:</strong> Hojas de cálculo para análisis de datos, registros y reportes cuantitativos</li>
-            <li><strong>.pdf:</strong> Documentos formales, informes finales, documentación oficial</li>
-            <li><strong>.docx/.doc:</strong> Documentos de texto, informes en proceso, documentación detallada</li>
-            <li><strong>.pptx/.ppt:</strong> Presentaciones para reuniones y exposiciones</li>
-            <li><strong>.csv:</strong> Datos estructurados para análisis y procesamiento</li>
-        </ul>
-        <p>La predominancia de ciertos formatos puede indicar el enfoque principal del trabajo en cada área.</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # TAB 3: Análisis por Dimensiones
-    with tab3:
         st.header("Análisis por Dimensiones")
         
         col1, col2 = st.columns(2)
@@ -685,7 +591,7 @@ def main():
     
     # NOTA: Añadir metodología de trabajo
     # TAB 4: Insights Adicionales
-    with tab4:
+    with tab3:
         st.header("Insights Adicionales")
         
         # Método de obtención (ejemplo)
@@ -770,7 +676,7 @@ def main():
 
     # NOTA: hablar del territorio 
     # TAB 5: Mapa Geográfico
-    with tab5:
+    with tab4:
         st.header("Mapa de la Región Metropolitana")
         
         # Puedes ajustar el tamaño del mapa según necesites
@@ -812,6 +718,128 @@ def main():
             <li><strong>Talagante:</strong> Zona oeste</li>
         </ul>
         <p>Puedes interactuar con el mapa para ver información detallada de cada comuna.</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with tab5:
+        st.header("Mapa de la Región Metropolitana")
+        
+        # Puedes ajustar el tamaño del mapa según necesites
+        mapa_height = 600
+        
+        # Función para leer el archivo HTML
+        def cargar_html_mapa(ruta_html):
+            try:
+                with open(ruta_html, 'r', encoding='utf-8') as f:
+                    html_content = f.read()
+                return html_content
+            except FileNotFoundError:
+                st.error(f"No se encontró el archivo HTML del mapa en: {ruta_html}")
+                return None
+        
+        # Ruta a tu archivo HTML (ajusta según donde esté guardado)
+        ruta_mapa = "mapa_sedes_utem.html"
+        
+        # Cargar y mostrar el mapa
+        html_mapa = cargar_html_mapa(ruta_mapa)
+        if html_mapa:
+            st.markdown("Este mapa muestra las diferentes provincias y comunas de la Región Metropolitana.")
+            components.html(html_mapa, height=mapa_height)
+        else:
+            st.warning("No se pudo cargar el mapa. Verifica la ruta del archivo HTML.")
+
+    
+
+    with tab6:
+        
+        st.header("Análisis archivos")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.plotly_chart(crear_grafico_institucional_territorial(df), use_container_width=True, key="inst_terr_chart")
+            
+            st.markdown("""
+            <div style="background-color:#f0f2f6; padding:15px; border-radius:10px;">
+            <h4>¿Qué nos muestra este gráfico?</h4>
+            <p>Este gráfico muestra la distribución de archivos entre las categorías <strong>Institucional</strong> 
+            y <strong>Territorial</strong>, permitiendo identificar rápidamente el balance entre estos dos tipos 
+            de información en el Data Lake.</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col2:
+            st.plotly_chart(crear_grafico_extensiones(df), use_container_width=True, key="ext_general_chart")
+            
+            st.markdown("""
+            <div style="background-color:#f0f2f6; padding:15px; border-radius:10px;">
+            <h4>Tipos de archivos en el Data Lake</h4>
+            <p>La distribución de tipos de archivos nos permite entender qué formatos predominan en el repositorio,
+            lo que refleja los tipos de datos y documentos más utilizados en la organización.</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Gráfico comparativo de extensiones por categoría
+        st.header("Comparación de Tipos de Archivos por Categoría")
+        st.plotly_chart(crear_grafico_comparativo_extensiones(df), use_container_width=True, key="ext_comp_chart")
+        
+        st.markdown("""
+        <div style="background-color:#f0f2f6; padding:15px; border-radius:10px;">
+        <h4>Diferencias entre categorías</h4>
+        <p>Esta comparación permite identificar si existen patrones o preferencias diferentes en el uso de formatos 
+        de archivos entre las áreas institucionales y territoriales. Esto puede reflejar diferentes necesidades
+        o flujos de trabajo específicos para cada categoría.</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+
+        st.header("Análisis Detallado por Tipo de Archivo")
+        
+        # Selector para filtrar por categoría
+        filtro_cat = st.radio(
+            "Seleccionar categoría:",
+            ["Global", "Institucional", "Territorial"],
+            horizontal=True
+        )
+        filtro = None if filtro_cat == "Global" else filtro_cat.lower()
+        
+        # Gráfico de extensiones filtrado
+        st.plotly_chart(crear_grafico_extensiones(df, filtro), use_container_width=True, key=f"ext_{filtro_cat}_chart")
+        
+        # Mostrar top extensiones con estadísticas
+        st.subheader(f"Top 5 Extensiones - {filtro_cat}")
+        
+        # Filtrar según selección
+        if filtro == 'institucional':
+            df_temp = df[df['institucional'] == True]
+        elif filtro == 'territorial':
+            df_temp = df[df['territorial'] == True]
+        else:
+            df_temp = df
+            
+        # Calcular estadísticas
+        top_ext = df_temp['extension'].value_counts().head(5)
+        top_ext_df = pd.DataFrame({
+            'Extensión': top_ext.index,
+            'Cantidad': top_ext.values,
+            'Porcentaje': (top_ext.values / len(df_temp) * 100).round(1)
+        })
+        
+        # Mostrar tabla
+        st.dataframe(top_ext_df, use_container_width=True)
+        
+        st.markdown("""
+        <div style="background-color:#f0f2f6; padding:15px; border-radius:10px;">
+        <h4>Interpretación de los tipos de archivos</h4>
+        <p>Los diferentes tipos de archivos tienen propósitos específicos:</p>
+        <ul>
+            <li><strong>.xlsx/.xls:</strong> Hojas de cálculo para análisis de datos, registros y reportes cuantitativos</li>
+            <li><strong>.pdf:</strong> Documentos formales, informes finales, documentación oficial</li>
+            <li><strong>.docx/.doc:</strong> Documentos de texto, informes en proceso, documentación detallada</li>
+            <li><strong>.pptx/.ppt:</strong> Presentaciones para reuniones y exposiciones</li>
+            <li><strong>.csv:</strong> Datos estructurados para análisis y procesamiento</li>
+        </ul>
+        <p>La predominancia de ciertos formatos puede indicar el enfoque principal del trabajo en cada área.</p>
         </div>
         """, unsafe_allow_html=True)
 
