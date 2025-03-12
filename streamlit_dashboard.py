@@ -377,6 +377,298 @@ def crear_grafico_metodos_obtencion():
     
     return fig
 
+
+
+# Función para crear gráfico de estado de indicadores con opciones seleccionables
+def crear_grafico_estados_interactivo(df):
+    """
+    Crea un gráfico circular interactivo con opciones seleccionables para visualizar
+    los estados de los indicadores por origen o categoría.
+    
+    Args:
+        df: DataFrame con los datos de los indicadores
+    """
+    st.subheader("Análisis de Estados de Indicadores")
+    
+    # Crear columnas para los controles
+    col1, col2 = st.columns([1, 2])
+    
+    with col1:
+        # Selector de origen
+        origen_option = st.radio(
+            "Filtrar por origen:",
+            ["Todos", "Institucional", "Territorial"],
+            index=0
+        )
+        
+        # Selector de agrupación
+        agrupar_por = st.radio(
+            "Agrupar por:",
+            ["Estado", "Dimensión", "Origen"],
+            index=0
+        )
+    
+    # Filtrar datos según la selección
+    if origen_option == "Institucional":
+        df_filtrado = df[df['Origen'] == 'Institucional']
+        titulo_origen = "Institucional"
+    elif origen_option == "Territorial":
+        df_filtrado = df[df['Origen'] == 'Territorial']
+        titulo_origen = "Territorial"
+    else:
+        df_filtrado = df
+        titulo_origen = "Global"
+    
+    # Agrupar datos según la selección
+    if agrupar_por == "Estado":
+        conteo = df_filtrado['Estado'].value_counts().reset_index()
+        conteo.columns = ['categoria', 'conteo']
+        titulo = f'Distribución por Estado - {titulo_origen}'
+    elif agrupar_por == "Dimensión":
+        # Extraer solo el nombre de la dimensión (sin el número)
+        df_filtrado['Dimension_Simple'] = df_filtrado['Dimension'].apply(
+            lambda x: x.split(':')[0] if ':' in x else x
+        )
+        conteo = df_filtrado['Dimension_Simple'].value_counts().reset_index()
+        conteo.columns = ['categoria', 'conteo']
+        titulo = f'Distribución por Dimensión - {titulo_origen}'
+    else:  # Origen
+        conteo = df_filtrado['Origen'].value_counts().reset_index()
+        conteo.columns = ['categoria', 'conteo']
+        titulo = f'Distribución por Origen - {titulo_origen}'
+    
+    # Ordenar por categoría (excepto para Estado que tiene un orden específico)
+    if agrupar_por != "Estado":
+        conteo = conteo.sort_values('categoria')
+    else:
+        # Orden personalizado para estados: PENDIENTE, EN PROCESO, LISTO
+        orden_estados = {"PENDIENTE": 1, "EN PROCESO": 2, "LISTO": 3}
+        conteo['orden'] = conteo['categoria'].map(orden_estados)
+        conteo = conteo.sort_values('orden')
+        conteo = conteo.drop('orden', axis=1)
+    
+    # Mostrar resumen numérico
+    with col1:
+        st.markdown(f"### Resumen")
+        total = conteo['conteo'].sum()
+        for i, row in conteo.iterrows():
+            porcentaje = round(row['conteo'] / total * 100, 1)
+            st.markdown(f"**{row['categoria']}**: {row['conteo']} ({porcentaje}%)")
+    
+    # Crear gráfico con la paleta personalizada
+    with col2:
+        # Paleta de colores según el tipo de agrupación
+        if agrupar_por == "Estado":
+            # Paleta específica para estados
+            color_map = {
+                "PENDIENTE": "#FEC109",  # Amarillo
+                "EN PROCESO": "#1E88E5",  # Azul medio
+                "LISTO": "#0A5C99"       # Azul oscuro
+            }
+            colors = [color_map.get(cat, "#FC9F0B") for cat in conteo['categoria']]
+        else:
+            # Usar la paleta general para otras agrupaciones
+            colors = ['#0A5C99', '#1E88E5', '#FEC109', '#FC9F0B', '#4CAF50', '#9C27B0', '#FF5722']
+            # Repetir colores si hay más categorías que colores
+            colors = colors * (len(conteo) // len(colors) + 1)
+            colors = colors[:len(conteo)]
+        
+        fig = px.pie(
+            conteo, 
+            values='conteo', 
+            names='categoria',
+            title=titulo,
+            hole=0.3,
+            color_discrete_sequence=colors
+        )
+        
+        # Configurar texto
+        fig.update_traces(
+            textposition='auto',
+            textinfo="percent+label",
+            textfont_size=12
+        )
+        
+        # Diseño
+        fig.update_layout(
+            template='plotly_white', 
+            height=450
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # Mostrar datos adicionales o interpretación
+    if agrupar_por == "Estado":
+        st.markdown("""
+        <div style="background-color:#f0f2f6; padding:15px; border-radius:10px; margin-top:10px;">
+        <h4>Interpretación de Estados</h4>
+        <ul>
+            <li><strong>PENDIENTE:</strong> Indicadores que aún no han iniciado su implementación</li>
+            <li><strong>EN PROCESO:</strong> Indicadores que están actualmente en fase de implementación</li>
+            <li><strong>LISTO:</strong> Indicadores que han sido completados</li>
+        </ul>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Mostrar tabla de datos filtrados
+    with st.expander("Ver datos detallados"):
+        st.dataframe(
+            df_filtrado[['ID', 'Dimension', 'Estado', 'Origen']], 
+            use_container_width=True,
+            hide_index=True
+        )
+
+
+# Cargar datos de indicadores
+@st.cache_data
+def cargar_indicadores(ruta='porcentajes avances.csv'):
+    try:
+        df = pd.read_csv(ruta, sep=';')
+        # Renombrar columnas para mayor claridad
+        df = df.rename(columns={
+            'ID': 'ID',
+            'Dimension': 'Dimension',
+            'Estado': 'Estado',
+            'Origen': 'Origen'
+        })
+        return df
+    except FileNotFoundError:
+        st.error(f"Archivo {ruta} no encontrado.")
+        return pd.DataFrame()
+
+# Usar la función en tu aplicación
+df_indicadores = cargar_indicadores()
+
+
+# Función para crear y mostrar el treemap de dimensiones e indicadores
+def mostrar_treemap_dimensiones():
+    """
+    Crea y muestra un treemap interactivo que visualiza las dimensiones e indicadores
+    tanto institucionales como territoriales.
+    """
+    st.subheader("Treemap de dimensiones e indicadores")
+    
+    # Verificar archivos disponibles y mostrar información de depuración
+    # st.write("Archivos disponibles para el treemap:")
+    archivos_disp = [f for f in os.listdir() if f.endswith('.csv')]
+    
+    if not any(f.lower() in ['institucional.csv', 'territorial.csv'] for f in archivos_disp):
+        st.error("No se encontraron los archivos necesarios: Institucional.csv y territorial.csv")
+        st.info(f"Archivos CSV disponibles: {', '.join(archivos_disp)}")
+        st.info(f"Directorio actual: {os.getcwd()}")
+        return
+    
+    # Función para cargar datos con mejor manejo de errores
+    def cargar_csv_seguro(nombre_archivo):
+        try:
+            # Intenta diferentes codificaciones
+            for encoding in ['utf-8', 'latin-1', 'ISO-8859-1', 'cp1252']:
+                try:
+                    ruta_completa = os.path.join(os.getcwd(), nombre_archivo)
+                    df = pd.read_csv(ruta_completa, encoding=encoding)
+                    # st.success(f"Archivo {nombre_archivo} cargado correctamente con codificación {encoding}")
+                    return df
+                except UnicodeDecodeError:
+                    continue
+                except Exception as e:
+                    st.warning(f"Error al cargar {nombre_archivo} con {encoding}: {str(e)}")
+                    continue
+            
+            # Si ninguna codificación funcionó
+            st.error(f"No se pudo cargar {nombre_archivo} con ninguna codificación.")
+            return None
+        except Exception as e:
+            st.error(f"Error inesperado al cargar {nombre_archivo}: {str(e)}")
+            return None
+    
+    # Cargar los dataframes
+    institucional_df = cargar_csv_seguro('Institucional.csv')
+    territorial_df = cargar_csv_seguro('territorial.csv')
+    
+    # Verificar si se cargaron los datos
+    if institucional_df is None or territorial_df is None:
+        st.error("No se pudieron cargar uno o ambos archivos CSV.")
+        return
+    
+    # Crear datos simulados si los archivos no contienen la estructura esperada
+    if 'Dimension' not in institucional_df.columns or 'Indicador' not in institucional_df.columns:
+        st.warning("Los archivos CSV no tienen el formato esperado. Usando datos simulados.")
+        
+        # Crear dataframes simulados basados en el CSV de porcentajes avances
+        df_indicadores = cargar_indicadores()
+        
+        # Verificar si se cargó el archivo de indicadores
+        if df_indicadores.empty:
+            st.error("No se pudieron cargar los datos de indicadores.")
+            return
+        
+        # Crear dataframes simulados
+        institucional_df = df_indicadores[df_indicadores['Origen'] == 'Institucional'].copy()
+        institucional_df['Dimension'] = institucional_df['Dimension']
+        institucional_df['Indicador'] = institucional_df['ID'] + ": " + institucional_df['Estado']
+        
+        territorial_df = df_indicadores[df_indicadores['Origen'] == 'Territorial'].copy()
+        territorial_df['Dimension'] = territorial_df['Dimension']
+        territorial_df['Indicador'] = territorial_df['ID'] + ": " + territorial_df['Estado']
+    
+    # Preparar los datos
+    institucional_df['Valor'] = 10
+    institucional_df['Categoria'] = 'Institucional'
+    territorial_df['Valor'] = 10
+    territorial_df['Categoria'] = 'Territorial'
+    
+    # Convertir "Indicadores" a "Indicador" para uniformidad
+    if 'Indicadores' in territorial_df.columns and 'Indicador' not in territorial_df.columns:
+        territorial_df = territorial_df.rename(columns={'Indicadores': 'Indicador'})
+    
+    # Combinar ambos dataframes
+    df_combined = pd.concat([institucional_df, territorial_df], ignore_index=True)
+    
+    # Verificar que tenemos las columnas necesarias
+    columnas_requeridas = ['Categoria', 'Dimension', 'Indicador', 'Valor']
+    columnas_faltantes = [col for col in columnas_requeridas if col not in df_combined.columns]
+    
+    if columnas_faltantes:
+        st.error(f"Faltan columnas requeridas: {', '.join(columnas_faltantes)}")
+        st.write("Columnas disponibles:", df_combined.columns.tolist())
+        return
+    
+    # Crear un treemap con la paleta de colores personalizada
+    try:
+        fig = px.treemap(
+            df_combined,
+            path=['Categoria', 'Dimension', 'Indicador'],
+            values='Valor',
+            color_discrete_sequence=['#0A5C99', '#1E88E5', '#FEC109', '#FC9F0B']
+        )
+        
+        # Actualizar trazas para el tamaño de fuente
+        fig.update_traces(
+            textfont=dict(size=16),
+            texttemplate='%{label}',
+            hovertemplate='<b>%{label}</b><br>Categoría: %{root}<br>Dimensión: %{parent}'
+        )
+        
+        # Ajustar los márgenes
+        fig.update_layout(
+            margin=dict(t=50, l=25, r=25, b=25),
+            height=700,
+            template='plotly_white'
+        )
+        
+        # Mostrar el treemap
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Eliminar los mensajes de depuración una vez que el gráfico se muestra correctamente
+        for key in list(st.session_state.keys()):
+            if key.startswith('_st_info_') or key.startswith('_st_success_') or key.startswith('_st_warning_'):
+                del st.session_state[key]
+        
+    except Exception as e:
+        st.error(f"Error al crear el treemap: {str(e)}")
+        st.write("Estructura de los datos:", df_combined.head())
+
+
 def main():
     # Aplicar estilo CSS personalizado para centrar imágenes en columnas
     st.markdown("""
@@ -413,31 +705,103 @@ def main():
     
     # Contador total de archivos
     total_archivos = len(df)
+    # Usar la función en tu aplicación
     st.markdown(f"### Levantamiento de un diagnóstico integral del territorio local y de las capacidades institucionales UTEM para la creación de un Centro Interdisciplinario en nuevas economías y tecnologías, orientado al desarrollo de localidades prioritarias de la Región Metropolitana. (CINET)")
-    
-    # Métricas principales
-    # col1, col2, col3 = st.columns(3)
-    # with col1:
-    #     inst_count = df['institucional'].sum()
-    #     st.metric("Archivos Institucionales", inst_count, f"{inst_count/total_archivos:.1%}")
-    
-    # with col2:
-    #     terr_count = df['territorial'].sum()
-    #     st.metric("Archivos Territoriales", terr_count, f"{terr_count/total_archivos:.1%}")
-    
-    # with col3:
-    #     ext_count = df['extension'].nunique()
-    #     st.metric("Tipos de Archivos", ext_count)
+    # Cargar datos de indicadores para las métricas de completitud
+    # Cargar datos de indicadores para las métricas de completitud
+    df_indicadores = cargar_indicadores()
 
-        # Métricas principales
-    col1, col2= st.columns(2)
+    # Calcular porcentajes de completitud y conteos por estado
+    if not df_indicadores.empty:
+        # Calcular para Institucional
+        df_inst = df_indicadores[df_indicadores['Origen'] == 'Institucional']
+        total_inst = len(df_inst)
+        completados_inst = len(df_inst[df_inst['Estado'] == 'LISTO'])
+        en_proceso_inst = len(df_inst[df_inst['Estado'] == 'EN PROCESO'])
+        pendientes_inst = len(df_inst[df_inst['Estado'] == 'PENDIENTE'])
+        porc_completitud_inst = completados_inst / total_inst * 100
+        porc_proceso_inst = en_proceso_inst / total_inst * 100
+        porc_pendientes_inst = pendientes_inst / total_inst * 100
+        
+        # Calcular para Territorial
+        df_terr = df_indicadores[df_indicadores['Origen'] == 'Territorial']
+        total_terr = len(df_terr)
+        completados_terr = len(df_terr[df_terr['Estado'] == 'LISTO'])
+        en_proceso_terr = len(df_terr[df_terr['Estado'] == 'EN PROCESO'])
+        pendientes_terr = len(df_terr[df_terr['Estado'] == 'PENDIENTE'])
+        porc_completitud_terr = completados_terr / total_terr * 100
+        porc_proceso_terr = en_proceso_terr / total_terr * 100
+        porc_pendientes_terr = pendientes_terr / total_terr * 100
+        
+        # Calcular global
+        total_global = len(df_indicadores)
+        completados_global = len(df_indicadores[df_indicadores['Estado'] == 'LISTO'])
+        en_proceso_global = len(df_indicadores[df_indicadores['Estado'] == 'EN PROCESO'])
+        pendientes_global = len(df_indicadores[df_indicadores['Estado'] == 'PENDIENTE'])
+        porc_completitud_global = completados_global / total_global * 100
+        porc_proceso_global = en_proceso_global / total_global * 100
+        porc_pendientes_global = pendientes_global / total_global * 100
+
+    # Métricas principales con tres columnas
+    col1, col2, col3 = st.columns(3)
+
     with col1:
-        inst_count = df['institucional'].sum()
-        st.metric("Archivos Institucionales", inst_count, f"{inst_count/total_archivos:.1%}")
-    
+        if not df_indicadores.empty:
+            # Usar None como delta para no mostrar la flecha
+            st.metric(
+                "Indicadores Institucionales", 
+                f"{porc_completitud_inst:.1f}% Completados", 
+                f"Total: {total_inst}",
+                delta_color="off"  # Desactivar el color del delta
+            )
+            # Añadir conteo detallado por estado con porcentajes
+            st.markdown(f"""
+            <div style="padding-left:10px;">
+                <span style="color:#0A5C99;font-weight:bold;">✓ Listos:</span> {completados_inst} ({porc_completitud_inst:.1f}%)<br>
+                <span style="color:#1E88E5;font-weight:bold;">⟳ En Proceso:</span> {en_proceso_inst} ({porc_proceso_inst:.1f}%)<br>
+                <span style="color:#FEC109;font-weight:bold;">⏱ Pendientes:</span> {pendientes_inst} ({porc_pendientes_inst:.1f}%)
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.metric("Indicadores Institucionales", "Sin datos", "")
+
     with col2:
-        terr_count = df['territorial'].sum()
-        st.metric("Archivos Territoriales", terr_count, f"{terr_count/total_archivos:.1%}")
+        if not df_indicadores.empty:
+            st.metric(
+                "Indicadores Territoriales", 
+                f"{porc_completitud_terr:.1f}% Completados", 
+                f"Total: {total_terr}",
+                delta_color="off"  # Desactivar el color del delta
+            )
+            # Añadir conteo detallado por estado con porcentajes
+            st.markdown(f"""
+            <div style="padding-left:10px;">
+                <span style="color:#0A5C99;font-weight:bold;">✓ Listos:</span> {completados_terr} ({porc_completitud_terr:.1f}%)<br>
+                <span style="color:#1E88E5;font-weight:bold;">⟳ En Proceso:</span> {en_proceso_terr} ({porc_proceso_terr:.1f}%)<br>
+                <span style="color:#FEC109;font-weight:bold;">⏱ Pendientes:</span> {pendientes_terr} ({porc_pendientes_terr:.1f}%)
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.metric("Indicadores Territoriales", "Sin datos", "")
+
+    with col3:
+        if not df_indicadores.empty:
+            st.metric(
+                "Avance General", 
+                f"{porc_completitud_global:.1f}% Completado", 
+                f"Total: {total_global} Indicadores",
+                delta_color="off"  # Desactivar el color del delta
+            )
+            # Añadir conteo detallado por estado con porcentajes
+            st.markdown(f"""
+            <div style="padding-left:10px;">
+                <span style="color:#0A5C99;font-weight:bold;">✓ Listos:</span> {completados_global} ({porc_completitud_global:.1f}%)<br>
+                <span style="color:#1E88E5;font-weight:bold;">⟳ En Proceso:</span> {en_proceso_global} ({porc_proceso_global:.1f}%)<br>
+                <span style="color:#FEC109;font-weight:bold;">⏱ Pendientes:</span> {pendientes_global} ({porc_pendientes_global:.1f}%)
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.metric("Avance General", "Sin datos", "")
     
     # Pestañas para diferentes análisis
     tab1, tab2, tab3, tab4, tab5, tab6= st.tabs([
@@ -454,34 +818,22 @@ def main():
     # NOTA: Los graficos de vista general pasan a análisis por Tipo
     # TAB 1: Vista General
     with tab1:
-        # Puedes ajustar el tamaño del mapa según necesites
-        treemap_height = 800
-        
-        # Función para leer el archivo HTML
-        def cargar_html_treemap(ruta_html):
-            try:
-                with open(ruta_html, 'r', encoding='utf-8') as f:
-                    html_content = f.read()
-                return html_content
-            except FileNotFoundError:
-                st.error(f"No se encontró el archivo HTML del mapa en: {ruta_html}")
-                return None
-        
-        # Ruta a tu archivo HTML (ajusta según donde esté guardado)
-        ruta_mapa = "treemap_simple.html"
-        
-        # Cargar y mostrar el mapa
-        html_treemap = cargar_html_treemap(ruta_mapa)
-        if html_treemap:
-            st.markdown("### Treemap de dimensiones e indicadores.")
-            components.html(html_treemap, height=treemap_height)
-        else:
-            st.warning("No se pudo cargar el mapa. Verifica la ruta del archivo HTML.")
+        st.markdown("""
+        <div style="background-color:#f0f2f6; padding:15px; border-radius:10px; margin-top:20px;">
+         <h3>Descripción </h3>
+        <p>El proyecto busca potenciar la investigación aplicada y la innovación en la Universidad Tecnológica Metropolitana mediante un diagnóstico integral del territorio y de sus capacidades institucionales, identificando fortalezas y brechas en gestión, infraestructura, oferta académica y colaboración; a partir de este análisis, se plantea la creación de un centro interdisciplinario que impulse la transferencia tecnológica y establezca alianzas estratégicas entre la academia, la industria y el sector público, contribuyendo al desarrollo sostenible y competitivo de la Región Metropolitana.</p>
+        <h3>Objetivo del Fondo de Financiamiento Estructural de I+D+i (FIU) Territorial: </h3>
+        <p>Potenciar la contribución de universidades con acreditación entre 3 y 5 años al desarrollo territorial y los procesos de  descentralización, mediante el financiamiento de capacidades mínimas de I+D+i, incluyendo su respectiva gestión y gobernanza institucional.</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        mostrar_treemap_dimensiones()
         
 
     with tab2:
         st.header("Análisis por Dimensiones")
-        
+    
+        # Mantén el código existente aquí...
         col1, col2 = st.columns(2)
         
         with col1:
@@ -588,6 +940,16 @@ def main():
         información en diferentes áreas de la organización.</p>
         </div>
         """, unsafe_allow_html=True)
+        st.markdown("---")
+        
+        # Cargar datos de indicadores
+        df_indicadores = cargar_indicadores()
+        
+        # Si los datos se cargaron correctamente, mostrar el gráfico interactivo
+        if not df_indicadores.empty:
+            crear_grafico_estados_interactivo(df_indicadores)
+        else:
+            st.warning("No se pudieron cargar los datos de indicadores.")
     
     # NOTA: Añadir metodología de trabajo
     # TAB 4: Insights Adicionales
