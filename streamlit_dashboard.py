@@ -804,9 +804,10 @@ def main():
             st.metric("Avance General", "Sin datos", "")
     
     # Pestañas para diferentes análisis
-    tab1, tab2, tab3, tab4, tab5, tab6= st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7= st.tabs([
         "Vista General", 
         "Análisis por Dimensiones",
+        "Análisis de Estado Indicadores",
         "Insights Adicionales",
         "Mapa Geográfico",
         "Mapa Sedes",
@@ -940,8 +941,10 @@ def main():
         información en diferentes áreas de la organización.</p>
         </div>
         """, unsafe_allow_html=True)
-        st.markdown("---")
-        
+    
+    # NOTA: Añadir metodología de trabajo
+    # TAB 4: Insights Adicionales
+    with tab3:
         # Cargar datos de indicadores
         df_indicadores = cargar_indicadores()
         
@@ -950,10 +953,7 @@ def main():
             crear_grafico_estados_interactivo(df_indicadores)
         else:
             st.warning("No se pudieron cargar los datos de indicadores.")
-    
-    # NOTA: Añadir metodología de trabajo
-    # TAB 4: Insights Adicionales
-    with tab3:
+    with tab4:
         st.header("Insights Adicionales")
         
         # Método de obtención (ejemplo)
@@ -1038,7 +1038,7 @@ def main():
 
     # NOTA: hablar del territorio 
     # TAB 5: Mapa Geográfico
-    with tab4:
+    with tab5:
         st.header("Mapa de la Región Metropolitana")
         
         # Puedes ajustar el tamaño del mapa según necesites
@@ -1083,7 +1083,7 @@ def main():
         </div>
         """, unsafe_allow_html=True)
 
-    with tab5:
+    with tab6:
         st.header("Mapa de la Región Metropolitana")
         
         # Puedes ajustar el tamaño del mapa según necesites
@@ -1112,7 +1112,7 @@ def main():
 
     
 
-    with tab6:
+    with tab7:
         
         st.header("Análisis archivos")
         
