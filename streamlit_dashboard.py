@@ -379,7 +379,7 @@ def crear_grafico_metodos_obtencion():
 
 def main():
     # Título principal con contador de archivos
-    st.title("🗃️ Proyecto FIUT 2024") # NOTA: añadir logo de U en vez de emoji
+    st.title("🗃️ Proyecto FIUT 2024 UTEM") # NOTA: añadir logo de U en vez de emoji
     
     # Cargar y procesar datos
     df = cargar_datos()
@@ -425,7 +425,10 @@ def main():
         "Insights Adicionales",
         "Mapa Geográfico"
     ])
-    
+
+
+    # NOTA: Añadir treemap a la vista general 
+    # NOTA: Los graficos de vista general pasan a análisis por Tipo
     # TAB 1: Vista General
     with tab1:
         st.header("Análisis archivos")
@@ -553,7 +556,7 @@ def main():
             """, unsafe_allow_html=True)
             
             # Mostrar estadísticas por dimensión
-            st.subheader("Estadísticas por Dimensión")
+            st.subheader("Estadísticas por Dimensión") # NOTA:  Añadir Nombre de las dimensiones en la tabla 
             
             # Filtrar según selección
             if filter_dim == 'institucional':
@@ -601,6 +604,7 @@ def main():
         </div>
         """, unsafe_allow_html=True)
     
+    # NOTA: Añadir metodología de trabajo
     # TAB 4: Insights Adicionales
     with tab4:
         st.header("Insights Adicionales")
@@ -684,6 +688,8 @@ def main():
         de captura de datos y facilitar el acceso a la información relevante.</p>
         </div>
         """, unsafe_allow_html=True)
+
+    # NOTA: hablar del territorio 
     # TAB 5: Mapa Geográfico
     with tab5:
         st.header("Mapa de la Región Metropolitana")
