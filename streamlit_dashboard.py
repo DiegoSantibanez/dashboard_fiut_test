@@ -8,13 +8,18 @@ import os
 import mimetypes
 from datetime import datetime
 import numpy as np
+import re
 
 # Configuración de la página
 st.set_page_config(
     page_title="Exploración datos FIUT",
     page_icon="📊",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
+    menu_items={
+        # 'About': "# PROYECTO FIU UTEM \n Dashboard creado por el equipo de integración de datos \n - Diego Santibañez, dsantibanezo@utem.cl\n - Esteban Gomez, egomez@utem.cl\n - Hugo Osses, hosses.utem.cl"
+        'About': "# PROYECTO FIU UTEM"
+    }
 )
 
 # Función para cargar los datos
@@ -544,12 +549,11 @@ df_indicadores = cargar_indicadores()
 def mostrar_treemap_dimensiones():
     """
     Crea y muestra un treemap interactivo que visualiza las dimensiones e indicadores
-    tanto institucionales como territoriales.
+    tanto institucionales como territoriales con números de indicador y texto más grande.
     """
     st.subheader("Treemap de dimensiones e indicadores")
     
     # Verificar archivos disponibles y mostrar información de depuración
-    # st.write("Archivos disponibles para el treemap:")
     archivos_disp = [f for f in os.listdir() if f.endswith('.csv')]
     
     if not any(f.lower() in ['institucional.csv', 'territorial.csv'] for f in archivos_disp):
@@ -566,7 +570,6 @@ def mostrar_treemap_dimensiones():
                 try:
                     ruta_completa = os.path.join(os.getcwd(), nombre_archivo)
                     df = pd.read_csv(ruta_completa, encoding=encoding)
-                    # st.success(f"Archivo {nombre_archivo} cargado correctamente con codificación {encoding}")
                     return df
                 except UnicodeDecodeError:
                     continue
@@ -611,21 +614,40 @@ def mostrar_treemap_dimensiones():
         territorial_df['Dimension'] = territorial_df['Dimension']
         territorial_df['Indicador'] = territorial_df['ID'] + ": " + territorial_df['Estado']
     
+    # Convertir "Indicadores" a "Indicador" para uniformidad
+    if 'Indicadores' in territorial_df.columns and 'Indicador' not in territorial_df.columns:
+        territorial_df = territorial_df.rename(columns={'Indicadores': 'Indicador'})
+    
+    # # Acortar el texto de los indicadores para mejor visualización en el treemap
+    # def acortar_texto(texto, max_longitud=60):
+    #     if isinstance(texto, str) and len(texto) > max_longitud:
+    #         return texto[:max_longitud] + "..."
+    #     return texto
+    
+    # # Crear versiones cortas de los indicadores para el treemap
+    # institucional_df['Indicador_Corto'] = institucional_df['Indicador'].apply(acortar_texto)
+    # territorial_df['Indicador_Corto'] = territorial_df['Indicador'].apply(acortar_texto)
+    
+    # Agregar números de indicador (I_1, I_2, etc. para institucionales y T_1, T_2, etc. para territoriales)
+    # Crear una nueva columna con números de índice
+    institucional_df = institucional_df.reset_index(drop=True)
+    territorial_df = territorial_df.reset_index(drop=True)
+    
+    # Agregar números usando enumerate para evitar problemas con índices
+    institucional_df['Indicador_Numerado'] = [f"I_{i+1}: {ind}" for i, ind in enumerate(institucional_df['Indicador'])]
+    territorial_df['Indicador_Numerado'] = [f"T_{i+1}: {ind}" for i, ind in enumerate(territorial_df['Indicador'])]
+    
     # Preparar los datos
     institucional_df['Valor'] = 10
     institucional_df['Categoria'] = 'Institucional'
     territorial_df['Valor'] = 10
     territorial_df['Categoria'] = 'Territorial'
     
-    # Convertir "Indicadores" a "Indicador" para uniformidad
-    if 'Indicadores' in territorial_df.columns and 'Indicador' not in territorial_df.columns:
-        territorial_df = territorial_df.rename(columns={'Indicadores': 'Indicador'})
-    
     # Combinar ambos dataframes
     df_combined = pd.concat([institucional_df, territorial_df], ignore_index=True)
     
     # Verificar que tenemos las columnas necesarias
-    columnas_requeridas = ['Categoria', 'Dimension', 'Indicador', 'Valor']
+    columnas_requeridas = ['Categoria', 'Dimension', 'Indicador_Numerado', 'Valor']
     columnas_faltantes = [col for col in columnas_requeridas if col not in df_combined.columns]
     
     if columnas_faltantes:
@@ -637,37 +659,53 @@ def mostrar_treemap_dimensiones():
     try:
         fig = px.treemap(
             df_combined,
-            path=['Categoria', 'Dimension', 'Indicador'],
+            path=['Categoria', 'Dimension', 'Indicador_Numerado'],
             values='Valor',
-            color_discrete_sequence=['#0A5C99', '#1E88E5', '#FEC109', '#FC9F0B']
+            color='Categoria',  # Colorear por categoría
+            color_discrete_map={
+                'Institucional': '#0A5C99',
+                'Territorial': '#FC9F0B'
+            }
         )
         
-        # Actualizar trazas para el tamaño de fuente
+        # Actualizar trazas para que el texto sea más grande
         fig.update_traces(
-            textfont=dict(size=16),
+            textfont=dict(size=24),  # Aumentar tamaño de fuente significativamente
             texttemplate='%{label}',
             hovertemplate='<b>%{label}</b><br>Categoría: %{root}<br>Dimensión: %{parent}'
         )
         
-        # Ajustar los márgenes
+        # Ajustar los márgenes y altura
         fig.update_layout(
             margin=dict(t=50, l=25, r=25, b=25),
-            height=700,
+            height=900,  # Aumentar altura para mejor visualización
             template='plotly_white'
         )
         
         # Mostrar el treemap
         st.plotly_chart(fig, use_container_width=True)
         
-        # Eliminar los mensajes de depuración una vez que el gráfico se muestra correctamente
-        for key in list(st.session_state.keys()):
-            if key.startswith('_st_info_') or key.startswith('_st_success_') or key.startswith('_st_warning_'):
-                del st.session_state[key]
+        # Generar leyenda adicional para los números de indicadores
+        st.subheader("Leyenda detallada de indicadores")
+        
+        # Crear pestañas para las categorías
+        tab1, tab2 = st.tabs(["Indicadores Institucionales", "Indicadores Territoriales"])
+        
+        with tab1:
+            # Mostrar indicadores institucionales en una tabla ordenada
+            st.markdown("### Indicadores Institucionales")
+            for idx, row in institucional_df.iterrows():
+                st.markdown(f"**I_{idx+1}:** {row['Indicador']}")
+                
+        with tab2:
+            # Mostrar indicadores territoriales en una tabla ordenada
+            st.markdown("### Indicadores Territoriales")
+            for idx, row in territorial_df.iterrows():
+                st.markdown(f"**T_{idx+1}:** {row['Indicador']}")
         
     except Exception as e:
         st.error(f"Error al crear el treemap: {str(e)}")
         st.write("Estructura de los datos:", df_combined.head())
-
 
 
 # Función para cargar y mostrar la tabla de comunas
