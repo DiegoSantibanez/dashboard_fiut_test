@@ -378,8 +378,30 @@ def crear_grafico_metodos_obtencion():
     return fig
 
 def main():
-    # Título principal con contador de archivos
-    st.title("🗃️ Proyecto FIUT 2024 UTEM") # NOTA: añadir logo de U en vez de emoji
+    # Aplicar estilo CSS personalizado para centrar imágenes en columnas
+    st.markdown("""
+    <style>
+        /* Centrar contenido en las columnas */
+        div[data-testid="column"] {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
+    col1, col2 = st.columns(2)
+
+    # Columna izquierda para una imagen (con ruta corregida)
+    with col1:
+        st.image("imagenes/Ministerio de Ciencias color.png", width=150)
+
+    # Columna derecha para otra imagen (con ruta corregida)
+    with col2:
+        st.image("imagenes/Isologo FIU UTEM color.png", width=400)
+
+    st.title("Proyecto FIUT 2024 UTEM")
     
     # Cargar y procesar datos
     df = cargar_datos()
